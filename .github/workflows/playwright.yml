@@ -28,16 +28,74 @@ jobs:
 
       - name: Rebuild .env.local
         run: |
-          cp .env .env.local
+          cp .env.example .env.local
           echo "API_KEY=${{ secrets.API_KEY }}" >> .env.local
 
       - name: 🧪 Run Playwright tests
         run: npx playwright test --reporter=html
 
-      - name: 📤 Upload HTML report
+      - name: 📤 Upload HTML Report
+        id: upload_report
+        run: |
+          REPORT_PATH="playwright-report/index.html"
+          if [ -s "$REPORT_PATH" ]; then
+            echo "✅ Report found"
+            echo "REPORT_FILE=$REPORT_PATH" >> $GITHUB_ENV
+          else
+            echo "❌ No report found"
+            echo "REPORT_FILE=" >> $GITHUB_ENV
+          fi
+        continue-on-error: true
+
+      - name: 📦 Upload Artifact
+        if: always()
         uses: actions/upload-artifact@v4
-        if: ${{ always() }}
         with:
           name: playwright-report
-          path: playwright-report/
+          path: ${{ env.REPORT_FILE }}
           retention-days: 7
+
+      - name: 📣 Notify Slack
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          COLOR="#e01e5a"
+          if [ "$STATUS" = "success" ]; then
+            COLOR="#2eb886"
+          fi
+
+          REPORT_FILE="${{ steps.upload_report.outputs.report_file }}"
+          if [ -n "$REPORT_FILE" ]; then
+            REPORT_NOTE="📄 Report uploaded: \`$(basename $REPORT_FILE)\`"
+          else
+            REPORT_NOTE="⚠️ No HTML report was generated."
+          fi
+
+          curl -X POST \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"*Postman Tests Status:* \`$STATUS\`\n$REPORT_NOTE\n🔗 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}> View full run in GitHub Actions.\",
+              \"attachments\": [
+                {
+                  \"color\": \"$COLOR\",
+                  \"fields\": [
+                    {
+                      \"title\": \"Workflow\",
+                      \"value\": \"${{ github.workflow }}\",
+                      \"short\": true
+                    },
+                    {
+                      \"title\": \"Branch\",
+                      \"value\": \"${{ github.ref_name }}\",
+                      \"short\": true
+                    },
+                    {
+                      \"title\": \"Commit\",
+                      \"value\": \"${{ github.sha }}\",
+                      \"short\": false
+                    }
+                  ]
+                }
+              ]
+            }" \
+            ${{ secrets.SLACK_WEBHOOK }}
