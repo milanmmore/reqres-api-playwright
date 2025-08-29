@@ -34,6 +34,15 @@ jobs:
       - name: 🧪 Run Playwright tests
         run: npx playwright test --reporter=html
 
+      - name: 🧪 Debug Report Path
+        run: |
+          ls -R
+          if [ -f "playwright-report/index.html" ]; then
+            echo "✅ Report exists"
+          else
+            echo "❌ Report missing"
+          fi
+
       - name: 📤 Upload HTML Report
         id: upload_report
         run: |
