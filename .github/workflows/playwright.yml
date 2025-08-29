@@ -23,8 +23,19 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
+      - name: 🔍 Get Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(node -e \"console.log(require('./package-lock.json').dependencies['@playwright/test'].version)\")" >> $GITHUB_ENV
+
+      - name: 💾 Cache Playwright binaries
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+
       - name: 🎭 Install Playwright browsers
         run: npx playwright install --with-deps
+        if: steps.playwright-version.outputs.cache-hit != 'true'
 
       - name: Rebuild .env.local
         run: |
@@ -83,7 +94,7 @@ jobs:
           curl -X POST \
             -H 'Content-type: application/json' \
             --data "{
-              \"text\": \"*Postman Tests Status:* \`$STATUS\`\n$REPORT_NOTE\n🔗 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}> View full run in GitHub Actions.\",
+              \"text\": \"*Playwright API Tests Status:* \`$STATUS\`\n$REPORT_NOTE\n🔗 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}> View full run in GitHub Actions.\",
               \"attachments\": [
                 {
                   \"color\": \"$COLOR\",
