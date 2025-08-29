@@ -74,6 +74,10 @@ jobs:
           name: playwright-report
           path: ${{ env.REPORT_FILE }}
           retention-days: 7
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
 
       - name: 📣 Notify Slack
         if: always()
