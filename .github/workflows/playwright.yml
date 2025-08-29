@@ -24,8 +24,9 @@ jobs:
         run: npm ci
 
       - name: 🔍 Get Playwright version
-        id: playwright-version
-        run: echo "PLAYWRIGHT_VERSION=$(node -e \"console.log(require('./package-lock.json').dependencies['@playwright/test'].version)\")" >> $GITHUB_ENV
+        run: |
+          VERSION=$(node -e 'console.log(require("./package-lock.json").dependencies["@playwright/test"].version)')
+          echo "PLAYWRIGHT_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: 💾 Cache Playwright binaries
         uses: actions/cache@v3
@@ -37,7 +38,7 @@ jobs:
         run: npx playwright install --with-deps
         if: steps.playwright-version.outputs.cache-hit != 'true'
 
-      - name: Rebuild .env.local
+      - name: 🔧 Rebuild .env.local
         run: |
           cp .env.example .env.local
           echo "API_KEY=${{ secrets.API_KEY }}" >> .env.local
@@ -55,7 +56,6 @@ jobs:
           fi
 
       - name: 📤 Upload HTML Report
-        id: upload_report
         run: |
           REPORT_PATH="playwright-report/index.html"
           if [ -s "$REPORT_PATH" ]; then
@@ -84,9 +84,8 @@ jobs:
             COLOR="#2eb886"
           fi
 
-          REPORT_FILE="${{ steps.upload_report.outputs.report_file }}"
-          if [ -n "$REPORT_FILE" ]; then
-            REPORT_NOTE="📄 Report uploaded: \`$(basename $REPORT_FILE)\`"
+          if [ -n "${{ env.REPORT_FILE }}" ]; then
+            REPORT_NOTE="📄 Report uploaded: \`$(basename ${{ env.REPORT_FILE }})\`"
           else
             REPORT_NOTE="⚠️ No HTML report was generated."
           fi
