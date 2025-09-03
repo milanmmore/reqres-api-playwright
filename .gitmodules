@@ -1,0 +1,3 @@
+[submodule "sections/02_Projects/Playwright/API/capstone/reqres-api-playwright"]
+	path = sections/02_Projects/Playwright/API/capstone/reqres-api-playwright
+	url = https://github.com/milanmmore/reqres-api-playwright.git
